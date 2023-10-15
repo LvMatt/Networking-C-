@@ -65,21 +65,20 @@ static void HandleClient(TcpClient client)
 
     var requestText = Encoding.UTF8.GetString(buffer, 0, rcnt);
 
-    Console.WriteLine("requestText33, {0}", requestText);
-
     var request = JsonSerializer.Deserialize<Request>(requestText);
 
-    Console.WriteLine("Request data--", request);
    
-        //HandleRequestMethod(stream, request);
-   
+    HandleRequest(stream, request);
+    if (!string.IsNullOrEmpty(request.Path) && request.Path != "testing")
+    {
         HandleApi(stream, request);
+    }
 
     stream.Close();
 }
 
 
-static void HandleRequestMethod(NetworkStream stream, Request request)
+static void HandleRequest(NetworkStream stream, Request request)
 {
     var extendedResponse = "";
     string extendedBody = "";
@@ -96,7 +95,7 @@ static void HandleRequestMethod(NetworkStream stream, Request request)
     }
 
 
-    if (string.IsNullOrEmpty(request?.Body))
+    if (string.IsNullOrEmpty(request?.Path) && Enum.TryParse<RequestMethodTypeEnum>(request?.Method, out RequestMethodTypeEnum result2))
     {
         extendedResponse += "- missing resource- ";
     }
@@ -136,40 +135,71 @@ static void HandleRequestMethod(NetworkStream stream, Request request)
 
 
 }
-
 static void  HandleApi(NetworkStream stream, Request request)
 {
     var extendedResponse = "";
     string extendedBody = null;
     var prefixToMatch = "/api/categories";
-    if (!string.IsNullOrEmpty(request.Path) && request.Path != "testing")
+
+
+    string[] pathToArr = new string[] { "" };
+    //somewhere in your code
+    pathToArr = request.Path.Split('/');
+
+    if (pathToArr[1] != "api" || pathToArr[2] != "categories")
     {
+        var test = new Response { Status = "4 Bad Request" };
+        extendedResponse += "4 Bad Request";
+        extendedBody = null;
 
-        string[] pathToArr = new string[] { "" };
-        //somewhere in your code
-        pathToArr = request.Path.Split('/');
+        Response response = CreateResponse(extendedResponse, extendedBody);
+        SendResponse(stream, response);
+        return;
 
-        Console.WriteLine("DSAD, {0} {1} {2}", pathToArr[1], pathToArr[2], pathToArr.Length);
-        if (pathToArr[1] != "api" || pathToArr[2] != "categories" )
+    }
+    if (pathToArr.Length == 4)
+    {
+        if (pathToArr[1] != "api" || pathToArr[2] != "categories" || !Regex.IsMatch(pathToArr?[3], @"\d"))
         {
             var test = new Response { Status = "4 Bad Request" };
             extendedResponse += "4 Bad Request";
             extendedBody = null;
+            Response response = CreateResponse(extendedResponse, extendedBody);
+            SendResponse(stream, response);
+            return;
 
         }
-        if(pathToArr.Length == 4)
-        {
-            if (pathToArr[1] != "api" || pathToArr[2] != "categories" || !Regex.IsMatch(pathToArr?[3], @"\d"))
-            {
-                var test = new Response { Status = "4 Bad Request" };
-                extendedResponse += "4 Bad Request";
-                extendedBody = null;
-
-            }
-        }
-
-       
     }
-    Response response = CreateResponse(extendedResponse, extendedBody);
-    SendResponse(stream, response);
+
+    switch (request.Method)
+    {
+        case "create":
+            handleCreateApi(stream, request);
+            break;
+        case "read":
+            break;
+        case "update":
+            break;
+        case "delete":
+            break;
+        case "echo":
+            break;
+
+    }
+
+
+}
+static void handleCreateApi(NetworkStream stream, Request request)
+{
+
+    var prefixToMatch = "/api/categories";
+    string[] pathToArr = new string[] { "" };
+    pathToArr = request.Path.Split('/');
+    if(pathToArr.Length != 3)
+    {
+        Response response = CreateResponse("4 Bad Request", "");
+        SendResponse(stream, response);
+        return;
+    }
+
 }
