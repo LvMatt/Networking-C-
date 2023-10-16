@@ -76,13 +76,25 @@ static void HandleClient(TcpClient client)
 
     var requestText = Encoding.UTF8.GetString(buffer, 0, rcnt);
 
-    var request = JsonSerializer.Deserialize<Request>(requestText);
+    try {
+        var request = JsonSerializer.Deserialize<Request>(requestText);
 
-    
-    // HandleRequest(stream, request);
-    if (!string.IsNullOrEmpty(request.Path) && request.Path != "testing")
-    {
-        HandleApi(stream, request);
+        HandleRequest(stream, request);
+
+        if (request?.Method == "echo")
+        {
+            Response response = CreateResponse("", request.Body);
+            SendResponse(stream, response);
+        }
+        else
+        {
+            HandleApi(stream, request);
+        }
+    }
+    catch (Exception e) {
+        Console.WriteLine("Invalid request");
+        Response response = CreateResponse(e.Message, "");
+        SendResponse(stream, response);
     }
 
     stream.Close();
@@ -91,9 +103,12 @@ static void HandleClient(TcpClient client)
 
 static void HandleRequest(NetworkStream stream, Request request)
 {
-    var extendedResponse = "";
-    string extendedBody = "";
+    string extendedResponse = "";
 
+    if (string.IsNullOrEmpty(request.Date))
+    {
+        extendedResponse += "- missing date- ";
+    }
 
     if (string.IsNullOrEmpty(request?.Method))
     {
@@ -105,47 +120,41 @@ static void HandleRequest(NetworkStream stream, Request request)
         extendedResponse += "- illegal method - ";
     }
 
-
-    if (string.IsNullOrEmpty(request?.Path) && Enum.TryParse<RequestMethodTypeEnum>(request?.Method, out RequestMethodTypeEnum result2))
+    if (string.IsNullOrEmpty(request?.Path) && (new [] {"create", "read", "update", "delete"}).Contains(request?.Method))
     {
         extendedResponse += "- missing resource- ";
     }
-    else
-    {
-        if ((request?.Body?.Trim().StartsWith("{") != true) && request.Method == "update" )
-        {
-            extendedResponse += "- illegal body- ";
-        }
-    }
 
-    if (string.IsNullOrEmpty(request.Date))
-    {
-        extendedResponse += "- missing date- ";
-    }
-
-    if (request?.Date is string)
-    {
-        extendedResponse += "- illegal date- ";
-    }
-
-    if (string.IsNullOrEmpty(request.Body) && request?.Method == "create" || request?.Method == "update" || request.Method == "echo")
+    if (string.IsNullOrEmpty(request.Body) && (new [] {"create", "update", "echo"}).Contains(request?.Method))
     {
         extendedResponse += "- missing body- ";
     }
 
-
-    if (request?.Method == "echo" && !string.IsNullOrEmpty(request?.Body)) 
+    if (!(new [] {"create", "read", "update", "delete", "echo"}).Contains(request?.Method))
     {
-        extendedBody = request.Body;
+        extendedResponse += "- illegal method- ";
     }
 
-    // extendedResponse = HandlePath(request, stream,extendedResponse, extendedBody);
+    if ((request?.Body?.Trim().StartsWith("{") != true) && request.Method == "update" )
+    {
+        extendedResponse += "- illegal body- ";
+    }
 
-    Response response = CreateResponse(extendedResponse, extendedBody);
-    SendResponse(stream, response);
+    try
+    {
+        Int32.Parse(request?.Date);
+    }
+    catch (Exception)
+    {
+        extendedResponse += "- illegal date- ";
+    }
 
-
+    if (extendedResponse != "")
+    {
+        throw new Exception(extendedResponse);
+    }
 }
+
 static void  HandleApi(NetworkStream stream, Request request)
 {
     var extendedResponse = "";
@@ -208,13 +217,16 @@ static void  HandleApi(NetworkStream stream, Request request)
 
 static void handleDeleteApi(NetworkStream stream, Request request)
 {
-    if (request.Path.Length <= 15)
+    string[] pathToArr = new string[] { "" };
+    pathToArr = request.Path.Split('/');
+    if (pathToArr.Length < 4)
     {
-        Response response = CreateResponse("4 Bad Request", "");
-        SendResponse(stream, response);
+        SendResponse(stream, CreateResponse("4 Bad Request", ""));
         return;
     }
 
+    Response response = CreateResponse("5 not found", "");
+    SendResponse(stream, response);
 }
 
 static void hadndleReadApi(NetworkStream stream, Request request)
