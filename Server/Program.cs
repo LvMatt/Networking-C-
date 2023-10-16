@@ -8,6 +8,7 @@ using System.IO;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Text.Json.Serialization;
+using System;
 
 var port = 5000;
 var server = new TcpListener(IPAddress.Loopback, port);
@@ -175,11 +176,13 @@ static void  HandleApi(NetworkStream stream, Request request)
     }
 
     List<Category> _categoryList = new List<Category>();
-    Category category = new Category(1, "Test");
-    Category category2 = new Category(2, "Test2");
+    Category category = new Category(1, "Beverages");
+    Category category2 = new Category(2, "Condiments");
+    Category category3 = new Category(3, "Confections");
 
     _categoryList.Add(category);
     _categoryList.Add(category2);
+    _categoryList.Add(category3);
 
 
     switch (request.Method)
@@ -188,6 +191,7 @@ static void  HandleApi(NetworkStream stream, Request request)
             handleCreateApi(stream, request);
             break;
         case "read":
+            hadndleReadApi(stream, request, _categoryList);
             break;
         case "update":
             handleUpdateApi(stream, request, _categoryList);
@@ -201,6 +205,48 @@ static void  HandleApi(NetworkStream stream, Request request)
 
 
 }
+
+static void hadndleReadApi(NetworkStream stream, Request request, List<Category> categories)
+{
+    string[] pathToArr = new string[] { "" };
+    pathToArr = request.Path.Split('/');
+    if (pathToArr.Length == 3)
+    {
+        readCategories(stream, request, categories);
+    }
+    else if (pathToArr.Length == 4)
+    {
+        readCategory(stream, request, categories, Convert.ToInt32(pathToArr[3]));
+
+    }
+}
+
+static void readCategories(NetworkStream stream, Request request, List<Category> categories)
+{
+    string cat1ToJson = JsonSerializer.Serialize(categories);
+    Response response = CreateResponse("1 Ok", cat1ToJson);
+    SendResponse(stream, response);
+    return;
+
+}
+
+static void readCategory(NetworkStream stream, Request request, List<Category> categories, int index)
+{
+    Category foundCategory = categories.FirstOrDefault(c => c.Id == index);
+    if (foundCategory == null)
+    {
+        Response response2 = CreateResponse("5 not found", "");
+        SendResponse(stream, response2);
+        return;
+    }
+
+    string cat1ToJson = JsonSerializer.Serialize(foundCategory);
+    Response response = CreateResponse("1 Ok", cat1ToJson);
+    SendResponse(stream, response);
+    return;
+
+}
+
 static void handleCreateApi(NetworkStream stream, Request request)
 {
 
@@ -249,7 +295,6 @@ static void handleUpdateApi(NetworkStream stream, Request request, List<Category
 
 static void updateCategory(NetworkStream stream, Request request, List<Category> _categoryList, int index)
 {
-    Console.WriteLine("REQUEST BODY {0} {1}", request.Body, index);
     var req = JsonSerializer.Deserialize<Category>(request.Body, new JsonSerializerOptions
     {
         PropertyNameCaseInsensitive = true // To handle case-insensitive property names
@@ -268,7 +313,6 @@ static void updateCategory(NetworkStream stream, Request request, List<Category>
 
     string cat1ToJson = JsonSerializer.Serialize<Category>(foundCategory);
 
-    Console.WriteLine("UPDATE_TEST1 {0}", cat1ToJson);
 
     Response response2 = CreateResponse("3 updated", cat1ToJson);
     SendResponse(stream, response2);
