@@ -225,8 +225,17 @@ static void handleDeleteApi(NetworkStream stream, Request request)
         return;
     }
 
-    Response response = CreateResponse("5 not found", "");
-    SendResponse(stream, response);
+    int id = Int32.Parse(pathToArr[3]);
+    Category foundCategory = CategoriesList.categoriesList.FirstOrDefault(c => c.Id == id);
+    if (foundCategory == null)
+    {
+        SendResponse(stream, CreateResponse("5 not found", ""));
+        return;
+    }
+
+    CategoriesList.categoriesList.Remove(foundCategory);
+
+    SendResponse(stream, CreateResponse("1 ok", ""));
 }
 
 static void hadndleReadApi(NetworkStream stream, Request request)
