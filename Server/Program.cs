@@ -247,7 +247,6 @@ static void readCategories(NetworkStream stream, Request request)
 static void readCategory(NetworkStream stream, Request request, int index)
 {
     Category foundCategory = CategoriesList.categoriesList.FirstOrDefault(c => c.Id == index);
-    Console.WriteLine("TeST ME TU ZE HNEC {0} {1} ", foundCategory.Name, foundCategory.Id);
 
     if (foundCategory == null)
     {
@@ -255,6 +254,7 @@ static void readCategory(NetworkStream stream, Request request, int index)
         SendResponse(stream, response2);
         return;
     }
+
 
     string cat1ToJson = JsonSerializer.Serialize<Category>(foundCategory);
     Response response = CreateResponse("1 Ok", cat1ToJson);
