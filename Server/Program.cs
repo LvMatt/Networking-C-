@@ -14,6 +14,15 @@ var server = new TcpListener(IPAddress.Loopback, port);
 server.Start();
 Console.WriteLine("Server started");
 
+List<Category> _categoryList = new List<Category>();
+Category category = new Category(1, "Test");
+_categoryList.Add(category);
+
+foreach (Category item in _categoryList)
+{
+    Console.WriteLine($"Category ID: {item.Cid}, Name: {item.Name}");
+}
+
 while (true)
 {
     var client = server.AcceptTcpClient();
@@ -67,7 +76,7 @@ static void HandleClient(TcpClient client)
 
     var request = JsonSerializer.Deserialize<Request>(requestText);
 
-   
+    
     HandleRequest(stream, request);
     if (!string.IsNullOrEmpty(request.Path) && request.Path != "testing")
     {
@@ -179,6 +188,7 @@ static void  HandleApi(NetworkStream stream, Request request)
         case "read":
             break;
         case "update":
+            handleUpdateApi(stream, request);
             break;
         case "delete":
             break;
@@ -201,5 +211,12 @@ static void handleCreateApi(NetworkStream stream, Request request)
         SendResponse(stream, response);
         return;
     }
+
+}
+
+static void handleUpdateApi(NetworkStream stream, Request request)
+{
+
+
 
 }
