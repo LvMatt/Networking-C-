@@ -1,17 +1,23 @@
 ﻿using System;
 using System.Security.Cryptography;
+using System.Text.Json.Serialization;
 using System.Xml.Linq;
 
 namespace Server
 {
 	public class Category
 	{
-		public int Cid { get; set; }
-		public string Name { get; set;  }
 
-        public Category(int cid, string name)
+        [JsonPropertyName("cid")]
+        public int Id { get; set; }
+
+        [JsonPropertyName("name")]
+        public string Name { get; set;  }
+
+        public Category(int id, string name)
         {
-            Cid = cid;
+            
+            Id = id;
             Name = name;
         }
     }
